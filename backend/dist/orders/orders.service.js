@@ -19,11 +19,13 @@ const typeorm_2 = require("typeorm");
 const order_entity_1 = require("../entities/order.entity");
 const order_item_entity_1 = require("../entities/order-item.entity");
 const product_entity_1 = require("../entities/product.entity");
+const supplier_service_1 = require("../supplier/supplier.service");
 let OrdersService = class OrdersService {
-    constructor(ordersRepository, orderItemsRepository, productsRepository) {
+    constructor(ordersRepository, orderItemsRepository, productsRepository, supplierService) {
         this.ordersRepository = ordersRepository;
         this.orderItemsRepository = orderItemsRepository;
         this.productsRepository = productsRepository;
+        this.supplierService = supplierService;
     }
     async create(userId, createOrderDto) {
         let totalAmount = 0;
@@ -71,8 +73,66 @@ let OrdersService = class OrdersService {
         return order;
     }
     async updateStatus(id, status) {
+        var _a;
+        const order = await this.findOne(id);
+        const oldStatus = order.status;
         await this.ordersRepository.update(id, { status });
-        return this.findOne(id);
+        const updatedOrder = await this.findOne(id);
+        if (oldStatus !== order_entity_1.OrderStatus.PAID && status === order_entity_1.OrderStatus.PAID) {
+            try {
+                const cjOrder = await this.supplierService.createOrder({
+                    orderNumber: order.id,
+                    shippingAddress: {
+                        customerName: ((_a = order.user) === null || _a === void 0 ? void 0 : _a.name) || 'Customer',
+                        countryCode: 'US',
+                        province: 'CA',
+                        city: 'Los Angeles',
+                        address: '123 Test St',
+                        zip: '90001',
+                        phone: '123456789',
+                    },
+                    products: order.items.map(item => ({
+                        vid: item.product.sku,
+                        quantity: item.quantity,
+                    }))
+                });
+                if (cjOrder && cjOrder.orderId) {
+                    await this.ordersRepository.update(id, {
+                        supplierOrderId: cjOrder.orderId,
+                    });
+                }
+            }
+            catch (error) {
+                console.error('Failed to place order with CJ:', error);
+            }
+        }
+        return updatedOrder;
+    }
+    async findBySupplierOrderId(supplierOrderId) {
+        return this.ordersRepository.findOne({
+            where: { supplierOrderId },
+            relations: ['items', 'items.product', 'user'],
+        });
+    }
+    async updateFromSupplier(supplierOrderId, status, trackingNumber) {
+        const order = await this.findBySupplierOrderId(supplierOrderId);
+        if (!order)
+            return null;
+        let internalStatus = order.status;
+        const s = status.toUpperCase();
+        if (s.includes('PAID') || s.includes('PROCESS'))
+            internalStatus = order_entity_1.OrderStatus.PAID;
+        if (s.includes('SHIP') || s.includes('SENT'))
+            internalStatus = order_entity_1.OrderStatus.SHIPPED;
+        if (s.includes('DELIVER') || s.includes('COMPLET'))
+            internalStatus = order_entity_1.OrderStatus.DELIVERED;
+        if (s.includes('CANCEL') || s.includes('REFUND'))
+            internalStatus = order_entity_1.OrderStatus.CANCELLED;
+        await this.ordersRepository.update(order.id, {
+            status: internalStatus,
+            trackingNumber: trackingNumber || order.trackingNumber,
+        });
+        return this.findOne(order.id);
     }
     async findAll() {
         return this.ordersRepository.find({
@@ -89,6 +149,7 @@ exports.OrdersService = OrdersService = __decorate([
     __param(2, (0, typeorm_1.InjectRepository)(product_entity_1.Product)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
         typeorm_2.Repository,
-        typeorm_2.Repository])
+        typeorm_2.Repository,
+        supplier_service_1.SupplierService])
 ], OrdersService);
 //# sourceMappingURL=orders.service.js.map

@@ -14,13 +14,18 @@ const order_item_entity_1 = require("../entities/order-item.entity");
 const product_entity_1 = require("../entities/product.entity");
 const orders_service_1 = require("./orders.service");
 const orders_controller_1 = require("./orders.controller");
+const webhooks_controller_1 = require("./webhooks.controller");
+const supplier_module_1 = require("../supplier/supplier.module");
 let OrdersModule = class OrdersModule {
 };
 exports.OrdersModule = OrdersModule;
 exports.OrdersModule = OrdersModule = __decorate([
     (0, common_1.Module)({
-        imports: [typeorm_1.TypeOrmModule.forFeature([order_entity_1.Order, order_item_entity_1.OrderItem, product_entity_1.Product])],
-        controllers: [orders_controller_1.OrdersController],
+        imports: [
+            typeorm_1.TypeOrmModule.forFeature([order_entity_1.Order, order_item_entity_1.OrderItem, product_entity_1.Product]),
+            supplier_module_1.SupplierModule,
+        ],
+        controllers: [orders_controller_1.OrdersController, webhooks_controller_1.WebhooksController],
         providers: [orders_service_1.OrdersService],
         exports: [orders_service_1.OrdersService],
     })

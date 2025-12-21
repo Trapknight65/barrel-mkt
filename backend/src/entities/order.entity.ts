@@ -28,6 +28,12 @@ export class Order {
     @Column('decimal', { precision: 10, scale: 2 })
     totalAmount: number;
 
+    @Column({ nullable: true })
+    supplierOrderId: string;
+
+    @Column({ nullable: true })
+    trackingNumber: string;
+
     @CreateDateColumn()
     createdAt: Date;
 

@@ -12,6 +12,8 @@ export declare class Order {
     user: User;
     status: OrderStatus;
     totalAmount: number;
+    supplierOrderId: string;
+    trackingNumber: string;
     createdAt: Date;
     updatedAt: Date;
     items: OrderItem[];

@@ -5,6 +5,7 @@ import { Order, OrderStatus } from '../entities/order.entity';
 import { OrderItem } from '../entities/order-item.entity';
 import { Product } from '../entities/product.entity';
 import { User } from '../entities/user.entity';
+import { SupplierService } from '../supplier/supplier.service';
 
 interface CreateOrderItemDto {
     productId: string;
@@ -24,6 +25,7 @@ export class OrdersService {
         private orderItemsRepository: Repository<OrderItem>,
         @InjectRepository(Product)
         private productsRepository: Repository<Product>,
+        private supplierService: SupplierService,
     ) { }
 
     async create(userId: string, createOrderDto: CreateOrderDto): Promise<Order> {
@@ -83,8 +85,74 @@ export class OrdersService {
     }
 
     async updateStatus(id: string, status: OrderStatus): Promise<Order> {
+        const order = await this.findOne(id);
+        const oldStatus = order.status;
+
         await this.ordersRepository.update(id, { status });
-        return this.findOne(id);
+        const updatedOrder = await this.findOne(id);
+
+        // If order just became PAID, trigger supplier order
+        if (oldStatus !== OrderStatus.PAID && status === OrderStatus.PAID) {
+            try {
+                // In a real app, you'd get customer info from order or user
+                // For MVP, we'll use order items and some placeholder shipping info
+                const cjOrder = await this.supplierService.createOrder({
+                    orderNumber: order.id,
+                    shippingAddress: {
+                        customerName: order.user?.name || 'Customer',
+                        countryCode: 'US', // Placeholder
+                        province: 'CA',
+                        city: 'Los Angeles',
+                        address: '123 Test St',
+                        zip: '90001',
+                        phone: '123456789',
+                    },
+                    products: order.items.map(item => ({
+                        vid: item.product.sku, // Assuming SKU is VID for simplicity in MVP
+                        quantity: item.quantity,
+                    }))
+                });
+
+                if (cjOrder && cjOrder.orderId) {
+                    await this.ordersRepository.update(id, {
+                        supplierOrderId: cjOrder.orderId,
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to place order with CJ:', error);
+                // In production, you'd queue this for retry or alert admin
+            }
+        }
+
+        return updatedOrder;
+    }
+
+    async findBySupplierOrderId(supplierOrderId: string): Promise<Order | null> {
+        return this.ordersRepository.findOne({
+            where: { supplierOrderId },
+            relations: ['items', 'items.product', 'user'],
+        });
+    }
+
+    async updateFromSupplier(supplierOrderId: string, status: string, trackingNumber?: string): Promise<Order | null> {
+        const order = await this.findBySupplierOrderId(supplierOrderId);
+        if (!order) return null;
+
+        // Map CJ statuses to internal statuses
+        let internalStatus = order.status;
+        const s = status.toUpperCase();
+
+        if (s.includes('PAID') || s.includes('PROCESS')) internalStatus = OrderStatus.PAID;
+        if (s.includes('SHIP') || s.includes('SENT')) internalStatus = OrderStatus.SHIPPED;
+        if (s.includes('DELIVER') || s.includes('COMPLET')) internalStatus = OrderStatus.DELIVERED;
+        if (s.includes('CANCEL') || s.includes('REFUND')) internalStatus = OrderStatus.CANCELLED;
+
+        await this.ordersRepository.update(order.id, {
+            status: internalStatus,
+            trackingNumber: trackingNumber || order.trackingNumber,
+        });
+
+        return this.findOne(order.id);
     }
 
     async findAll(): Promise<Order[]> {
