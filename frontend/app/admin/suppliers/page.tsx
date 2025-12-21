@@ -25,6 +25,12 @@ export default function AdminSuppliersPage() {
             const data = await searchCJProducts(keyword);
             if (data && data.list) {
                 console.log('[DEBUG] CJ Product Sample:', data.list[0]);
+                console.log('[DEBUG] Image Fields:', {
+                    productImage: data.list[0]?.productImage,
+                    image: data.list[0]?.image,
+                    img: data.list[0]?.img,
+                    productImg: data.list[0]?.productImg
+                });
                 setProducts(data.list);
             } else {
                 setProducts([]);
