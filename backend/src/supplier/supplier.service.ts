@@ -72,6 +72,12 @@ export class SupplierService {
             },
             timeout: 30000,
         });
+
+        if (!this.apiKey) {
+            this.logger.error('CRITICAL: CJ_API_KEY is missing from configuration!');
+        } else {
+            this.logger.log(`CJ_API_KEY loaded: ${this.apiKey.substring(0, 5)}...${this.apiKey.substring(this.apiKey.length - 4)} (Length: ${this.apiKey.length})`);
+        }
     }
 
     /**
