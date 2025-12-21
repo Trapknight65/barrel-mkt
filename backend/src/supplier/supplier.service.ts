@@ -1,80 +1,312 @@
-import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import axios, { AxiosInstance } from 'axios';
+
+interface CJAccessToken {
+    accessToken: string;
+    accessTokenExpiryDate: string;
+    refreshToken: string;
+    refreshTokenExpiryDate: string;
+}
 
 interface CJProduct {
-    productId: string;
+    pid: string;
     productName: string;
+    productNameEn: string;
+    productImage: string;
+    productWeight: number;
+    productType: string;
+    productUnit: string;
     sellPrice: number;
-    imageUrl: string;
+    categoryId: string;
     categoryName: string;
+    sourceFrom: number;
+    variants: CJVariant[];
+}
+
+interface CJVariant {
+    vid: string;
+    variantName: string;
+    variantNameEn: string;
+    variantImage: string;
+    variantSku: string;
+    variantWeight: number;
+    variantVolume: number;
+    variantSellPrice: number;
+    variantStock: number;
+}
+
+interface CJOrderItem {
+    vid: string;
+    quantity: number;
+}
+
+interface CJShippingAddress {
+    customerName: string;
+    countryCode: string;
+    province: string;
+    city: string;
+    address: string;
+    address2?: string;
+    zip: string;
+    phone: string;
+    email?: string;
 }
 
 @Injectable()
 export class SupplierService {
+    private readonly logger = new Logger(SupplierService.name);
     private readonly apiKey: string;
-    private readonly baseUrl = 'https://developers.cjdropshipping.com/api';
+    private readonly baseUrl = 'https://developers.cjdropshipping.com/api2.0/v1';
+    private accessToken: string | null = null;
+    private tokenExpiry: Date | null = null;
+    private httpClient: AxiosInstance;
 
     constructor(private configService: ConfigService) {
         this.apiKey = this.configService.get<string>('CJ_API_KEY') || '';
+
+        this.httpClient = axios.create({
+            baseURL: this.baseUrl,
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            timeout: 30000,
+        });
     }
 
     /**
-     * Fetches products from CJ Dropshipping.
-     * This is a placeholder - actual implementation requires CJ API access token flow.
+     * Get or refresh the CJ API access token
      */
-    async fetchProducts(categoryId?: string, page = 1, pageSize = 20): Promise<CJProduct[]> {
-        // Placeholder: In production, make actual API call
-        console.log(`[SupplierService] Fetching products. Category: ${categoryId}, Page: ${page}`);
-
-        // Mock response for development
-        return [
-            {
-                productId: 'CJ_MOCK_001',
-                productName: 'Action Camera Mount - Universal',
-                sellPrice: 12.99,
-                imageUrl: 'https://example.com/mount.jpg',
-                categoryName: 'Camera Accessories',
-            },
-            {
-                productId: 'CJ_MOCK_002',
-                productName: 'Bike Phone Holder - Waterproof',
-                sellPrice: 8.50,
-                imageUrl: 'https://example.com/holder.jpg',
-                categoryName: 'Bike Accessories',
-            },
-        ];
-    }
-
-    /**
-     * Places an order with CJ Dropshipping.
-     * Placeholder implementation.
-     */
-    async placeOrder(orderData: any): Promise<{ orderId: string; success: boolean }> {
-        console.log('[SupplierService] Placing order:', orderData);
-
-        if (!this.apiKey) {
-            throw new HttpException('CJ API Key not configured', HttpStatus.INTERNAL_SERVER_ERROR);
+    private async getAccessToken(): Promise<string> {
+        // Return cached token if still valid
+        if (this.accessToken && this.tokenExpiry && new Date() < this.tokenExpiry) {
+            return this.accessToken;
         }
 
-        // Placeholder: In production, POST to CJ API
+        try {
+            this.logger.log('Fetching new CJ access token...');
+
+            const response = await this.httpClient.get('/authentication/getAccessToken', {
+                params: { accessKey: this.apiKey },
+            });
+
+            if (response.data.result && response.data.data) {
+                const tokenData: CJAccessToken = response.data.data;
+                this.accessToken = tokenData.accessToken;
+                this.tokenExpiry = new Date(tokenData.accessTokenExpiryDate);
+
+                this.logger.log('CJ access token obtained successfully');
+                return this.accessToken;
+            }
+
+            throw new Error(response.data.message || 'Failed to get access token');
+        } catch (error: any) {
+            this.logger.error('Failed to get CJ access token:', error.message);
+            throw new HttpException(
+                'CJ API authentication failed',
+                HttpStatus.INTERNAL_SERVER_ERROR,
+            );
+        }
+    }
+
+    /**
+     * Make an authenticated request to CJ API
+     */
+    private async cjRequest<T>(
+        method: 'GET' | 'POST' | 'PATCH',
+        endpoint: string,
+        data?: any,
+        params?: any,
+    ): Promise<T> {
+        const token = await this.getAccessToken();
+
+        try {
+            const response = await this.httpClient.request({
+                method,
+                url: endpoint,
+                data,
+                params,
+                headers: {
+                    'CJ-Access-Token': token,
+                },
+            });
+
+            if (response.data.result) {
+                return response.data.data;
+            }
+
+            throw new Error(response.data.message || 'CJ API request failed');
+        } catch (error: any) {
+            this.logger.error(`CJ API error (${endpoint}):`, error.message);
+            throw new HttpException(
+                error.response?.data?.message || 'CJ API request failed',
+                HttpStatus.BAD_GATEWAY,
+            );
+        }
+    }
+
+    /**
+     * Search for products in CJ catalog
+     */
+    async searchProducts(params: {
+        keyword?: string;
+        categoryId?: string;
+        pageNum?: number;
+        pageSize?: number;
+    }): Promise<{ list: CJProduct[]; total: number }> {
+        this.logger.log(`Searching CJ products: ${JSON.stringify(params)}`);
+
+        return this.cjRequest('GET', '/product/list', null, {
+            productNameEn: params.keyword,
+            categoryId: params.categoryId,
+            pageNum: params.pageNum || 1,
+            pageSize: params.pageSize || 20,
+        });
+    }
+
+    /**
+     * Get detailed product information
+     */
+    async getProduct(pid: string): Promise<CJProduct> {
+        this.logger.log(`Fetching CJ product: ${pid}`);
+
+        return this.cjRequest('GET', '/product/query', null, { pid });
+    }
+
+    /**
+     * Get product variants and stock information
+     */
+    async getProductVariants(pid: string): Promise<CJVariant[]> {
+        const product = await this.getProduct(pid);
+        return product.variants || [];
+    }
+
+    /**
+     * Get product categories
+     */
+    async getCategories(): Promise<any[]> {
+        this.logger.log('Fetching CJ categories');
+
+        return this.cjRequest('GET', '/product/getCategory');
+    }
+
+    /**
+     * Create an order with CJ Dropshipping
+     */
+    async createOrder(params: {
+        orderNumber: string;  // Your internal order ID
+        shippingAddress: CJShippingAddress;
+        products: CJOrderItem[];
+        shippingMethod?: string;
+        remark?: string;
+    }): Promise<{
+        orderId: string;
+        orderNumber: string;
+        status: string;
+    }> {
+        this.logger.log(`Creating CJ order: ${params.orderNumber}`);
+
+        const orderData = {
+            orderNumber: params.orderNumber,
+            shippingCountryCode: params.shippingAddress.countryCode,
+            shippingProvince: params.shippingAddress.province,
+            shippingCity: params.shippingAddress.city,
+            shippingAddress: params.shippingAddress.address,
+            shippingAddress2: params.shippingAddress.address2 || '',
+            shippingCustomerName: params.shippingAddress.customerName,
+            shippingZip: params.shippingAddress.zip,
+            shippingPhone: params.shippingAddress.phone,
+            shippingEmail: params.shippingAddress.email || '',
+            remark: params.remark || '',
+            products: params.products.map((p) => ({
+                vid: p.vid,
+                quantity: p.quantity,
+            })),
+        };
+
+        const result = await this.cjRequest<any>('POST', '/shopping/order/createOrder', orderData);
+
         return {
-            orderId: `CJ_ORDER_${Date.now()}`,
-            success: true,
+            orderId: result.orderId,
+            orderNumber: result.orderNumber,
+            status: result.status || 'CREATED',
         };
     }
 
     /**
-     * Gets tracking info for a CJ order.
+     * Get order details from CJ
      */
-    async getTracking(cjOrderId: string): Promise<any> {
-        console.log('[SupplierService] Getting tracking for:', cjOrderId);
+    async getOrder(orderId: string): Promise<any> {
+        this.logger.log(`Fetching CJ order: ${orderId}`);
 
-        // Placeholder
+        return this.cjRequest('GET', '/shopping/order/getOrderDetail', null, { orderId });
+    }
+
+    /**
+     * Get available shipping methods for a product to a country
+     */
+    async getShippingMethods(params: {
+        startCountryCode: string;
+        endCountryCode: string;
+        productWeight: number;
+    }): Promise<any[]> {
+        this.logger.log(`Fetching shipping methods: ${params.startCountryCode} -> ${params.endCountryCode}`);
+
+        return this.cjRequest('POST', '/logistic/freightCalculate', {
+            startCountryCode: params.startCountryCode,
+            endCountryCode: params.endCountryCode,
+            weight: params.productWeight,
+        });
+    }
+
+    /**
+     * Get tracking information for an order
+     */
+    async getTracking(trackingNumber: string): Promise<{
+        trackingNumber: string;
+        carrier: string;
+        status: string;
+        events: Array<{
+            date: string;
+            location: string;
+            description: string;
+        }>;
+    }> {
+        this.logger.log(`Fetching tracking: ${trackingNumber}`);
+
+        const result = await this.cjRequest<any>('GET', '/logistic/getTrackInfo', null, {
+            trackNumber: trackingNumber,
+        });
+
         return {
-            orderId: cjOrderId,
-            status: 'SHIPPED',
-            trackingNumber: 'TRACK123456789',
-            carrier: 'YunExpress',
+            trackingNumber: result.trackNumber,
+            carrier: result.logisticName || 'Unknown',
+            status: result.status || 'Unknown',
+            events: (result.trackInfoList || []).map((event: any) => ({
+                date: event.date,
+                location: event.location || '',
+                description: event.trackInfo,
+            })),
         };
+    }
+
+    /**
+     * Confirm payment for an order (triggers CJ to process)
+     */
+    async confirmPayment(orderId: string): Promise<boolean> {
+        this.logger.log(`Confirming payment for order: ${orderId}`);
+
+        await this.cjRequest('PATCH', '/shopping/order/confirmOrder', { orderId });
+        return true;
+    }
+
+    /**
+     * Cancel an order
+     */
+    async cancelOrder(orderId: string): Promise<boolean> {
+        this.logger.log(`Cancelling order: ${orderId}`);
+
+        await this.cjRequest('PATCH', '/shopping/order/cancelOrder', { orderId });
+        return true;
     }
 }
