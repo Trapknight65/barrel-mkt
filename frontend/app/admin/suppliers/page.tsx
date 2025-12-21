@@ -24,6 +24,7 @@ export default function AdminSuppliersPage() {
         try {
             const data = await searchCJProducts(keyword);
             if (data && data.list) {
+                console.log('[DEBUG] CJ Product Sample:', data.list[0]);
                 setProducts(data.list);
             } else {
                 setProducts([]);
