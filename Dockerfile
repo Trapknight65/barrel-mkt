@@ -18,9 +18,10 @@ RUN npm ci
 # Copy backend source code
 COPY backend/ ./
 
-# Fix line endings in all files
+# Fix line endings in all files and set permissions
 RUN find . -type f -name "*.ts" -exec dos2unix {} \; 2>/dev/null || true
 RUN find . -type f -name "*.json" -exec dos2unix {} \; 2>/dev/null || true
+RUN chmod +x node_modules/.bin/*
 
 # Build the application using npx
 RUN npx nest build
