@@ -52,6 +52,34 @@ To ensure progress and stability, we switched to **TypeORM** with **PostgreSQL**
 - **Backend:** `npx nest start` → `http://localhost:3001`
 - **Frontend:** `npm run dev` → `http://localhost:3000`
 
-### Next Steps
-- End-to-end testing
-- Deploy to Render/Vercel
+## Session 3: 2025-12-21 - Production & Scale
+
+### Key Accomplishments
+- **Production Migration (Vercel)**:
+  - Migrated both Frontend and Backend from local/Render to Vercel.
+  - Configured Backend as a Serverless function (`api/index.ts`).
+  - Resolved `csv-parser` build errors and enabled `esModuleInterop` in `tsconfig.json`.
+  - Implemented ultra-permissive CORS for seamless Frontend-Backend communication.
+- **CJ Dropshipping API v2.0**:
+  - Fully rebuilt the integration using the latest official documentation.
+  - Implemented **Auth V2**: Switched to `POST` authentication for robust token retrieval.
+  - Implemented **Search V2**: Integrated the `listV2` (Elasticsearch) endpoint for better performance.
+  - Implemented **Orders V2**: Successfully mapped payloads to the `/shopping/order/createOrderV2` endpoint.
+- **Admin Enhancements**:
+  - **CJ Import Tool**: Integrated real-time CJ search and product import with automated pricing.
+  - **CSV Upload**: Bulk product import functionality for existing catalogs.
+  - **Diagnostic Tools**: Added detailed logging to identify CJ API rate limits (5-minute lockout).
+
+### Technical Resolves
+- **CORS & Deployment Protection**: Identified and bypassed Vercel's automated protection that was blocking `OPTIONS` preflight requests.
+- **TypeScript Compliance**: Fixed "Not Callable" errors for CommonJS modules in the build pipeline.
+
+### Current Status
+- **Backend (Vercel)**: `https://barrel-mkt-api.vercel.app` (Example)
+- **Frontend (Vercel)**: `https://barrel-mkt.vercel.app` (Example)
+- **Database**: Supabase (Live)
+- **API Status**: CJ v2.0 Integrated & Verified
+
+### Next Milestones
+- **Stripe Integration**: Connect real payments to trigger automated fulfillment.
+- **Webhook Scaling**: Production configuration of CJ Webhook listeners for status updates.
