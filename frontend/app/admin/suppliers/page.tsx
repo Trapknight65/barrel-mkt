@@ -53,7 +53,7 @@ export default function AdminSuppliersPage() {
             };
 
             await createProduct(productData);
-            alert(`Imported "${product.productNameEn}" successfully!`);
+            alert(`Imported "${product.nameEn}" successfully!`);
         } catch (error) {
             console.error('Import failed:', error);
             alert('Failed to import product');
