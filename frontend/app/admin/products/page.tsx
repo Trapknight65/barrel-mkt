@@ -1,26 +1,33 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
-import Link from 'next/link';
-import { fetchAPI, uploadProductsCsv } from '@/lib/api';
+import { useState, useEffect } from 'react';
+import { getProducts, updateProduct, createProduct } from '@/lib/api';
 
 interface Product {
     id: string;
     title: string;
+    description: string;
     price: number;
-    category?: string;
     stock: number;
-    imageUrl?: string;
+    category: string;
+    imageUrl: string;
+    sku: string;
 }
 
 export default function AdminProductsPage() {
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
-    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+    const [editForm, setEditForm] = useState<Partial<Product>>({});
+    const [saving, setSaving] = useState(false);
+
+    useEffect(() => {
+        loadProducts();
+    }, []);
 
     async function loadProducts() {
         try {
-            const data = await fetchAPI('/products');
+            const data = await getProducts();
             setProducts(data);
         } catch (error) {
             console.error('Failed to load products:', error);
@@ -29,128 +36,171 @@ export default function AdminProductsPage() {
         }
     }
 
-    useEffect(() => {
-        loadProducts();
-    }, []);
+    const handleEditClick = (product: Product) => {
+        setEditingProduct(product);
+        setEditForm({
+            title: product.title,
+            description: product.description,
+            price: product.price,
+            stock: product.stock,
+            category: product.category,
+            imageUrl: product.imageUrl,
+            sku: product.sku,
+        });
+    };
 
-    async function handleDelete(id: string) {
-        if (!confirm('Are you sure you want to delete this product?')) return;
+    const handleSave = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingProduct) return;
 
+        setSaving(true);
         try {
-            await fetchAPI(`/products/${id}`, { method: 'DELETE' });
-            setProducts((prev) => prev.filter((p) => p.id !== id));
+            await updateProduct(editingProduct.id, editForm);
+            alert('Product updated successfully!');
+            await loadProducts(); // Reload to see changes
+            setEditingProduct(null); // Close modal
         } catch (error) {
-            alert('Failed to delete product');
-        }
-    }
-
-    async function handleFileUpload(event: React.ChangeEvent<HTMLInputElement>) {
-        const file = event.target.files?.[0];
-        if (!file) return;
-
-        try {
-            setLoading(true);
-            const result = await uploadProductsCsv(file);
-            alert(`Imported: ${result.imported} products\nFailed: ${result.failed} items`);
-            loadProducts();
-        } catch (error) {
-            console.error(error);
-            alert('Failed to upload CSV');
+            console.error('Failed to update product:', error);
+            alert('Failed to update product');
         } finally {
-            setLoading(false);
-            if (fileInputRef.current) fileInputRef.current.value = '';
+            setSaving(false);
         }
-    }
+    };
+
+    if (loading) return <div className="p-8 text-center">Loading products...</div>;
 
     return (
         <div>
-            <div className="flex items-center justify-between mb-8">
-                <h1 className="text-3xl font-bold">Products</h1>
+            <div className="flex justify-between items-center mb-8">
                 <div>
-                    <input
-                        type="file"
-                        accept=".csv"
-                        className="hidden"
-                        ref={fileInputRef}
-                        onChange={handleFileUpload}
-                    />
-                    <button
-                        onClick={() => fileInputRef.current?.click()}
-                        className="px-6 py-3 bg-white/10 text-white font-bold rounded-full hover:bg-white/20 transition mr-4"
-                    >
-                        Import CSV
-                    </button>
-                    <Link
-                        href="/admin/products/new"
-                        className="px-6 py-3 bg-[#D4FF00] text-black font-bold rounded-full hover:scale-105 transition"
-                    >
-                        + Add Product
-                    </Link>
+                    <h1 className="text-3xl font-bold mb-2">Products</h1>
+                    <p className="text-white/50">Manage your product catalog.</p>
                 </div>
             </div>
 
-            {loading ? (
-                <div className="flex justify-center py-20">
-                    <div className="w-8 h-8 border-2 border-[#D4FF00] border-t-transparent rounded-full animate-spin" />
-                </div>
-            ) : products.length === 0 ? (
-                <div className="text-center py-20 text-white/50">
-                    <p className="text-lg mb-4">No products yet</p>
-                    <Link
-                        href="/admin/products/new"
-                        className="inline-block px-6 py-3 bg-[#D4FF00] text-black font-bold rounded-full"
-                    >
-                        Add your first product
-                    </Link>
-                </div>
-            ) : (
-                <div className="bg-white/5 rounded-2xl overflow-hidden">
-                    <table className="w-full">
-                        <thead className="bg-white/5">
-                            <tr>
-                                <th className="text-left p-4 text-white/50 font-medium">Product</th>
-                                <th className="text-left p-4 text-white/50 font-medium">Category</th>
-                                <th className="text-left p-4 text-white/50 font-medium">Price</th>
-                                <th className="text-left p-4 text-white/50 font-medium">Stock</th>
-                                <th className="text-right p-4 text-white/50 font-medium">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {products.map((product) => (
-                                <tr key={product.id} className="border-t border-white/5 hover:bg-white/5">
-                                    <td className="p-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-12 h-12 bg-white/10 rounded-lg flex items-center justify-center">
-                                                {product.imageUrl ? (
-                                                    <img src={product.imageUrl} alt="" className="w-full h-full object-cover rounded-lg" />
-                                                ) : (
-                                                    <span>📦</span>
-                                                )}
-                                            </div>
-                                            <span className="font-medium">{product.title}</span>
+            <div className="bg-white/5 rounded-3xl overflow-hidden border border-white/10">
+                <table className="w-full text-left">
+                    <thead className="bg-white/5 text-xs uppercase text-white/50">
+                        <tr>
+                            <th className="px-6 py-4">Product</th>
+                            <th className="px-6 py-4">SKU</th>
+                            <th className="px-6 py-4">Price</th>
+                            <th className="px-6 py-4">Stock</th>
+                            <th className="px-6 py-4">Category</th>
+                            <th className="px-6 py-4">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                        {products.map((product) => (
+                            <tr key={product.id} className="hover:bg-white/5 transition">
+                                <td className="px-6 py-4">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-12 h-12 bg-white/10 rounded-lg overflow-hidden flex-shrink-0">
+                                            {product.imageUrl ? (
+                                                <img src={product.imageUrl} alt="" className="w-full h-full object-cover" />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center text-xs text-white/30">No Img</div>
+                                            )}
                                         </div>
-                                    </td>
-                                    <td className="p-4 text-white/70">{product.category || '-'}</td>
-                                    <td className="p-4 text-[#D4FF00] font-medium">${Number(product.price).toFixed(2)}</td>
-                                    <td className="p-4">{product.stock}</td>
-                                    <td className="p-4 text-right">
-                                        <Link
-                                            href={`/admin/products/${product.id}`}
-                                            className="px-4 py-2 bg-white/10 rounded-lg hover:bg-white/20 transition mr-2"
-                                        >
-                                            Edit
-                                        </Link>
-                                        <button
-                                            onClick={() => handleDelete(product.id)}
-                                            className="px-4 py-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition"
-                                        >
-                                            Delete
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                                        <div className="max-w-[200px]">
+                                            <div className="font-medium truncate" title={product.title}>{product.title}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td className="px-6 py-4 text-white/50 font-mono text-sm">{product.sku}</td>
+                                <td className="px-6 py-4 font-bold text-[#D4FF00]">${Number(product.price).toFixed(2)}</td>
+                                <td className="px-6 py-4">
+                                    <span className={`px-2 py-1 rounded text-xs font-bold ${product.stock > 0 ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                                        {product.stock}
+                                    </span>
+                                </td>
+                                <td className="px-6 py-4 text-white/50">{product.category}</td>
+                                <td className="px-6 py-4">
+                                    <button
+                                        onClick={() => handleEditClick(product)}
+                                        className="text-white hover:text-[#D4FF00] font-medium transition"
+                                    >
+                                        Edit
+                                    </button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+
+            {/* Edit Modal */}
+            {editingProduct && (
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="bg-[#1a1a1a] border border-white/10 rounded-3xl p-8 max-w-lg w-full shadow-2xl">
+                        <h2 className="text-2xl font-bold mb-6">Edit Product</h2>
+                        <form onSubmit={handleSave} className="space-y-4">
+                            <div>
+                                <label className="block text-sm text-white/50 mb-2">Title</label>
+                                <input
+                                    type="text"
+                                    value={editForm.title || ''}
+                                    onChange={e => setEditForm({ ...editForm, title: e.target.value })}
+                                    className="w-full px-4 py-3 bg-white/5 rounded-xl border border-white/10 focus:border-[#D4FF00] outline-none transition"
+                                />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm text-white/50 mb-2">Price</label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        value={editForm.price || 0}
+                                        onChange={e => setEditForm({ ...editForm, price: parseFloat(e.target.value) })}
+                                        className="w-full px-4 py-3 bg-white/5 rounded-xl border border-white/10 focus:border-[#D4FF00] outline-none transition"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm text-white/50 mb-2">Stock</label>
+                                    <input
+                                        type="number"
+                                        value={editForm.stock || 0}
+                                        onChange={e => setEditForm({ ...editForm, stock: parseInt(e.target.value) })}
+                                        className="w-full px-4 py-3 bg-white/5 rounded-xl border border-white/10 focus:border-[#D4FF00] outline-none transition"
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm text-white/50 mb-2">Category</label>
+                                <input
+                                    type="text"
+                                    value={editForm.category || ''}
+                                    onChange={e => setEditForm({ ...editForm, category: e.target.value })}
+                                    className="w-full px-4 py-3 bg-white/5 rounded-xl border border-white/10 focus:border-[#D4FF00] outline-none transition"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm text-white/50 mb-2">Image URL</label>
+                                <input
+                                    type="text"
+                                    value={editForm.imageUrl || ''}
+                                    onChange={e => setEditForm({ ...editForm, imageUrl: e.target.value })}
+                                    className="w-full px-4 py-3 bg-white/5 rounded-xl border border-white/10 focus:border-[#D4FF00] outline-none transition"
+                                />
+                            </div>
+                            <div className="flex gap-4 mt-8 pt-4 border-t border-white/10">
+                                <button
+                                    type="button"
+                                    onClick={() => setEditingProduct(null)}
+                                    className="flex-1 py-3 bg-white/5 hover:bg-white/10 rounded-xl font-bold transition"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={saving}
+                                    className="flex-1 py-3 bg-[#D4FF00] text-black rounded-xl font-bold hover:scale-[1.02] transition disabled:opacity-50"
+                                >
+                                    {saving ? 'Saving...' : 'Save Changes'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             )}
         </div>
