@@ -86,8 +86,8 @@ export class SupplierService {
         try {
             this.logger.log('Fetching new CJ access token...');
 
-            const response = await this.httpClient.get('/authentication/getAccessToken', {
-                params: { accessKey: this.apiKey },
+            const response = await this.httpClient.post('/authentication/getAccessToken', {
+                apiKey: this.apiKey,
             });
 
             if (response.data.result && response.data.data) {
@@ -131,6 +131,7 @@ export class SupplierService {
                 params,
                 headers: {
                     'CJ-Access-Token': token,
+                    'platformToken': '',
                 },
             });
 
@@ -151,9 +152,6 @@ export class SupplierService {
         }
     }
 
-    /**
-     * Search for products in CJ catalog
-     */
     async searchProducts(params: {
         keyword?: string;
         categoryId?: string;
@@ -162,12 +160,18 @@ export class SupplierService {
     }): Promise<{ list: CJProduct[]; total: number }> {
         this.logger.log(`Searching CJ products: ${JSON.stringify(params)}`);
 
-        return this.cjRequest('GET', '/product/list', null, {
-            productNameEn: params.keyword,
+        const result = await this.cjRequest<any>('GET', '/product/listV2', null, {
+            keyWord: params.keyword,
             categoryId: params.categoryId,
-            pageNum: params.pageNum || 1,
-            pageSize: params.pageSize || 20,
+            page: params.pageNum || 1,
+            size: params.pageSize || 20,
         });
+
+        // The API response structure for V2 is data.content[0].productList
+        const list = result.content?.[0]?.productList || [];
+        const total = result.totalRecords || 0;
+
+        return { list, total };
     }
 
     /**
@@ -230,7 +234,13 @@ export class SupplierService {
             })),
         };
 
-        const result = await this.cjRequest<any>('POST', '/shopping/order/createOrder', orderData);
+        const result = await this.cjRequest<any>('POST', '/shopping/order/createOrderV2', {
+            ...orderData,
+            payType: '2', // Balance Payment
+            fromCountryCode: 'CN', // Default to China
+            logisticName: params.shippingMethod || 'CJ Packet',
+            shippingCountry: params.shippingAddress.countryCode, // V2 often expects this
+        });
 
         return {
             orderId: result.orderId,
