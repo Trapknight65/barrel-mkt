@@ -20,6 +20,7 @@ export default async function handler(req, res) {
             await app.init();
         }
         const expressApp = app.getHttpAdapter().getInstance();
+        console.log('[DEBUG] Serverless Request URL:', req.url);
         return expressApp(req, res);
     } catch (error) {
         console.error('SERVERLESS STARTUP ERROR:', error);
