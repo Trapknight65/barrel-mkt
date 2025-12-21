@@ -1,6 +1,9 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 export async function fetchAPI(endpoint: string, options: RequestInit = {}) {
+    if (typeof window !== 'undefined' && endpoint === '/supplier/products') {
+        console.log(`[DEBUG] Calling Backend: ${API_BASE}${endpoint}`);
+    }
     const url = `${API_BASE}${endpoint}`;
 
     const defaultHeaders: Record<string, string> = {
