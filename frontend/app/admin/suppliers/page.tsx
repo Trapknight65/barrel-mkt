@@ -4,12 +4,12 @@ import { useState } from 'react';
 import { searchCJProducts, createProduct } from '@/lib/api';
 
 interface CJProduct {
-    pid: string;
-    productNameEn: string;
+    id: string; // V2 uses 'id', not 'pid'
+    nameEn: string; // V2 uses 'nameEn'
     productImage: string;
     sellPrice: string;
     categoryId: string;
-    productSku: string;
+    sku: string; // V2 uses 'sku'
 }
 
 export default function AdminSuppliersPage() {
@@ -38,18 +38,18 @@ export default function AdminSuppliersPage() {
     }
 
     async function handleImport(product: CJProduct) {
-        setImporting(product.pid);
+        setImporting(product.id);
         try {
             // Map CJ product to our schema
             const productData = {
-                title: product.productNameEn,
-                description: `Imported from CJ. SKU: ${product.productSku}`,
+                title: product.nameEn,
+                description: `Imported from CJ. SKU: ${product.sku}`,
                 price: parseFloat(product.sellPrice) * 1.5, // 50% markup by default
-                sku: product.productSku,
+                sku: product.sku,
                 stock: 100, // Default stock as we don't sync real-time yet
                 category: 'Imported',
                 imageUrl: product.productImage,
-                supplierId: product.pid,
+                supplierId: product.id,
             };
 
             await createProduct(productData);
@@ -89,20 +89,20 @@ export default function AdminSuppliersPage() {
             {products.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     {products.map((product) => (
-                        <div key={product.pid} className="bg-white/5 rounded-2xl overflow-hidden border border-white/5 flex flex-col">
+                        <div key={product.id} className="bg-white/5 rounded-2xl overflow-hidden border border-white/5 flex flex-col">
                             <div className="aspect-square relative">
                                 <img
                                     src={product.productImage}
-                                    alt={product.productNameEn}
+                                    alt={product.nameEn}
                                     className="w-full h-full object-cover"
                                 />
                                 <div className="absolute top-2 right-2 bg-black/80 text-white text-xs px-2 py-1 rounded-md backdrop-blur-md">
-                                    SKU: {product.productSku}
+                                    SKU: {product.sku}
                                 </div>
                             </div>
                             <div className="p-4 flex-1 flex flex-col">
-                                <h3 className="font-medium text-lg leading-snug mb-2 line-clamp-2" title={product.productNameEn}>
-                                    {product.productNameEn}
+                                <h3 className="font-medium text-lg leading-snug mb-2 line-clamp-2" title={product.nameEn}>
+                                    {product.nameEn}
                                 </h3>
                                 <div className="mt-auto flex items-center justify-between pt-4">
                                     <div>
@@ -111,10 +111,10 @@ export default function AdminSuppliersPage() {
                                     </div>
                                     <button
                                         onClick={() => handleImport(product)}
-                                        disabled={importing === product.pid}
+                                        disabled={importing === product.id}
                                         className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition disabled:opacity-50 text-sm font-bold"
                                     >
-                                        {importing === product.pid ? 'Importing...' : 'Import +'}
+                                        {importing === product.id ? 'Importing...' : 'Import +'}
                                     </button>
                                 </div>
                             </div>
