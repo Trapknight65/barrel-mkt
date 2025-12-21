@@ -16,9 +16,10 @@ interface Product {
     sku?: string;
 }
 
-export default function ProductDetailPage({ params: paramsPromise }: { params: Promise<{ id: string }> }) {
+// Using async/await for params as it's more robust in Next.js 15+
+export default function ProductDetailPage({ params: paramsPromise }: { params: Promise<{ productId: string }> }) {
     const params = use(paramsPromise);
-    const productId = params.id;
+    const productId = params.productId;
 
     const [product, setProduct] = useState<Product | null>(null);
     const [loading, setLoading] = useState(true);
@@ -27,7 +28,6 @@ export default function ProductDetailPage({ params: paramsPromise }: { params: P
     const { addItem } = useCart();
 
     useEffect(() => {
-        if (!productId) return;
         async function load() {
             try {
                 const data = await getProduct(productId);
