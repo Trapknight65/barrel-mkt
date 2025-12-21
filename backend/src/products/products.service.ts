@@ -3,8 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Product } from '../entities/product.entity';
 import { Readable } from 'stream';
-import csv from 'csv-parser';
-const csvParser = csv;
+const csv = require('csv-parser');
 
 @Injectable()
 export class ProductsService {
@@ -51,7 +50,7 @@ export class ProductsService {
 
         return new Promise((resolve, reject) => {
             stream
-                .pipe((csvParser as any)())
+                .pipe(csv())
                 .on('data', (data) => results.push(data))
                 .on('end', async () => {
                     let successCount = 0;
