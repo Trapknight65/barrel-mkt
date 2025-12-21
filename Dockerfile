@@ -1,43 +1,43 @@
 # Root Dockerfile for Render deployment
 # Builds the NestJS backend
 
-# Build stage
 FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+# Install build dependencies
+RUN apk add --no-cache dos2unix
+
 # Copy backend package files
 COPY backend/package*.json ./
 
-# Install dependencies
+# Fix line endings and install
+RUN dos2unix package*.json 2>/dev/null || true
 RUN npm ci
 
 # Copy backend source code
 COPY backend/ ./
 
-# Build the application
-RUN npm run build
+# Fix line endings in all files
+RUN find . -type f -name "*.ts" -exec dos2unix {} \; 2>/dev/null || true
+RUN find . -type f -name "*.json" -exec dos2unix {} \; 2>/dev/null || true
+
+# Build the application using npx
+RUN npx nest build
 
 # Production stage
 FROM node:20-alpine AS production
 
 WORKDIR /app
 
-# Copy package files
 COPY backend/package*.json ./
-
-# Install production dependencies only
 RUN npm ci --only=production
 
-# Copy built application from builder stage
 COPY --from=builder /app/dist ./dist
 
-# Expose port
 EXPOSE 3001
 
-# Set environment
 ENV NODE_ENV=production
 ENV PORT=3001
 
-# Start the application
 CMD ["node", "dist/main.js"]
