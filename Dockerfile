@@ -14,7 +14,9 @@ WORKDIR /app
 COPY backend/package*.json ./
 RUN npm ci --only=production
 COPY --from=builder /app/dist ./dist
+# Expose default port but Render will override via PORT env var
 EXPOSE 3001
+
 ENV NODE_ENV=production
-ENV PORT=3001
+
 CMD ["node", "dist/main.js"]
