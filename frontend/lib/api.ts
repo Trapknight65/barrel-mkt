@@ -1,10 +1,11 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 export async function fetchAPI(endpoint: string, options: RequestInit = {}) {
-    if (typeof window !== 'undefined' && endpoint === '/supplier/products') {
-        console.log(`[DEBUG] Calling Backend: ${API_BASE}${endpoint}`);
-    }
     const url = `${API_BASE}${endpoint}`;
+
+    if (typeof window !== 'undefined') {
+        console.log(`[API_CALL] ${options.method || 'GET'} ${url}`);
+    }
 
     const defaultHeaders: Record<string, string> = {
         'Content-Type': 'application/json',
@@ -70,8 +71,6 @@ export async function uploadProductsCsv(file: File) {
     const formData = new FormData();
     formData.append('file', file);
 
-    // We can't use fetchAPI here easily because it sets Content-Type to application/json
-    // So we'll fetch directly but use the token logic
     const endpoint = '/products/upload';
     const url = `${API_BASE}${endpoint}`;
     const headers: Record<string, string> = {};
@@ -85,7 +84,10 @@ export async function uploadProductsCsv(file: File) {
         method: 'POST',
         headers,
         body: formData,
-    });
+        forceOptions: {
+            // This is to avoid application/json default in some fetch wrappers
+        }
+    } as any);
 
     if (!response.ok) {
         throw new Error(`Upload failed: ${response.status}`);
