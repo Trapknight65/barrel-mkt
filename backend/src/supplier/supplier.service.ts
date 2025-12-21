@@ -102,6 +102,9 @@ export class SupplierService {
             throw new Error(response.data.message || 'Failed to get access token');
         } catch (error: any) {
             this.logger.error('Failed to get CJ access token:', error.message);
+            if (error.response) {
+                this.logger.error('CJ Error Data:', JSON.stringify(error.response.data));
+            }
             throw new HttpException(
                 'CJ API authentication failed',
                 HttpStatus.INTERNAL_SERVER_ERROR,
@@ -138,6 +141,9 @@ export class SupplierService {
             throw new Error(response.data.message || 'CJ API request failed');
         } catch (error: any) {
             this.logger.error(`CJ API error (${endpoint}):`, error.message);
+            if (error.response) {
+                this.logger.error('CJ Details:', JSON.stringify(error.response.data));
+            }
             throw new HttpException(
                 error.response?.data?.message || 'CJ API request failed',
                 HttpStatus.BAD_GATEWAY,
