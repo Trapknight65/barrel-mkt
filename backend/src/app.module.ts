@@ -8,6 +8,8 @@ import { ProductsModule } from './products/products.module';
 import { OrdersModule } from './orders/orders.module';
 import { AuthModule } from './auth/auth.module';
 import { SupplierModule } from './supplier/supplier.module';
+import { PaymentModule } from './payment/payment.module';
+import { WebhookModule } from './webhook/webhook.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -23,7 +25,10 @@ import { HealthController } from './health.controller';
         ProductsModule,
         OrdersModule,
         AuthModule,
+        AuthModule,
         SupplierModule,
+        PaymentModule,
+        WebhookModule,
     ],
     controllers: [AppController, HealthController],
     providers: [AppService],

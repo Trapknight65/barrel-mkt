@@ -24,6 +24,8 @@ export class ProductsController {
         return this.productsService.create(productData);
     }
 
+
+
     @UseGuards(AuthGuard('jwt'))
     @Post('upload')
     @UseInterceptors(FileInterceptor('file'))
