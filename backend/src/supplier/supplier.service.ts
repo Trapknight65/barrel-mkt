@@ -92,8 +92,22 @@ export class SupplierService {
         try {
             this.logger.log('Fetching new CJ access token...');
 
+            // The API key is in the format: apiId@api@apiSecret
+            const [apiId, _, apiSecret] = this.apiKey.split('@');
+
+            if (!apiId || !apiSecret) {
+                throw new Error('Invalid CJ_API_KEY format. Expected apiId@api@apiSecret');
+            }
+
+            const timestamp = Date.now();
+            const crypto = require('crypto');
+            const sign = crypto.createHash('md5').update(apiSecret + timestamp).digest('hex');
+
             const response = await this.httpClient.post('/authentication/getAccessToken', {
-                apiKey: this.apiKey,
+                apiId: apiId,
+                apiSecret: apiSecret, // Sometimes needed alongside the sign
+                sign: sign,
+                timestamp: timestamp
             });
 
             if (response.data.result && response.data.data) {
