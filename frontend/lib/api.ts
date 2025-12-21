@@ -72,6 +72,20 @@ export async function getProduct(id: string) {
     return fetchAPI(`/products/${id}`);
 }
 
+export async function createProduct(productData: any) {
+    return fetchAPI('/products', {
+        method: 'POST',
+        body: JSON.stringify(productData),
+    });
+}
+
+export async function updateProduct(id: string, productData: any) {
+    return fetchAPI(`/products/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(productData),
+    });
+}
+
 export async function uploadProductsCsv(file: File) {
     const formData = new FormData();
     formData.append('file', file);
@@ -122,9 +136,10 @@ export async function getCJProduct(pid: string) {
     return fetchAPI(`/supplier/product/${pid}`);
 }
 
-export async function createProduct(productData: any) {
-    return fetchAPI('/products', {
+// Payment helpers
+export async function createPaymentIntent(amount: number, currency = 'usd') {
+    return fetchAPI('/payment/intent', {
         method: 'POST',
-        body: JSON.stringify(productData),
+        body: JSON.stringify({ amount, currency }),
     });
 }
