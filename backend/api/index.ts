@@ -8,6 +8,10 @@ export default async function handler(req, res) {
     try {
         if (!app) {
             app = await NestFactory.create(AppModule);
+
+            // Set global prefix
+            app.setGlobalPrefix('api');
+
             app.enableCors({
                 origin: true,
                 methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
