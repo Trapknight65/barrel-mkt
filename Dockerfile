@@ -6,8 +6,8 @@ COPY backend/package*.json ./
 RUN dos2unix package*.json && npm ci
 COPY backend/ ./
 RUN find . -type f -name "*.ts" -exec dos2unix {} \; && \
-    find . -type f -name "*.json" -exec dos2unix {} \; && \
-    node node_modules/.bin/nest build
+    # Build the application using node directly via JS entry point
+    node node_modules/@nestjs/cli/bin/nest.js build
 
 FROM node:20-alpine AS production
 WORKDIR /app
