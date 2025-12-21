@@ -6,7 +6,11 @@ let app;
 export default async function handler(req, res) {
     if (!app) {
         app = await NestFactory.create(AppModule);
-        app.enableCors(); // Vital for frontend connection
+        app.enableCors({
+            origin: true, // Allow all origins for now
+            methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+            credentials: true,
+        });
         await app.init();
     }
     const expressApp = app.getHttpAdapter().getInstance();
