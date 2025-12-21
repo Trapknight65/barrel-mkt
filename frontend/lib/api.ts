@@ -1,4 +1,9 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+let API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+
+// Ensure API_BASE ends with /api
+if (!API_BASE.endsWith('/api')) {
+    API_BASE = API_BASE.replace(/\/$/, '') + '/api';
+}
 
 export async function fetchAPI(endpoint: string, options: RequestInit = {}) {
     const url = `${API_BASE}${endpoint}`;
