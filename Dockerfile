@@ -18,13 +18,12 @@ RUN npm ci
 # Copy backend source code
 COPY backend/ ./
 
-# Fix line endings in all files and set permissions
+# Fix line endings in sources and build
 RUN find . -type f -name "*.ts" -exec dos2unix {} \; 2>/dev/null || true
 RUN find . -type f -name "*.json" -exec dos2unix {} \; 2>/dev/null || true
-RUN chmod +x node_modules/.bin/*
 
-# Build the application using npx
-RUN npx nest build
+# Build the application using node directly to avoid permission issues on the script
+RUN node node_modules/.bin/nest build
 
 # Production stage
 FROM node:20-alpine AS production
