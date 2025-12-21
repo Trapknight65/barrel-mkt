@@ -28,9 +28,9 @@ export default function AdminSuppliersPage() {
             } else {
                 setProducts([]);
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Search failed:', error);
-            alert('Search failed');
+            alert(`Search failed: ${error.message}`);
         } finally {
             setLoading(false);
         }
