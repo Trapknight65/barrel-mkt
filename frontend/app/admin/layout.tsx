@@ -47,6 +47,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         { href: '/admin/products', label: 'Products', icon: '📦' },
         { href: '/admin/orders', label: 'Orders', icon: '🛒' },
         { href: '/admin/users', label: 'Users', icon: '👥' },
+        { href: '/admin/suppliers', label: 'Suppliers', icon: '🌍' },
     ];
 
     return (
@@ -64,8 +65,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                             key={item.href}
                             href={item.href}
                             className={`flex items-center gap-3 px-4 py-3 rounded-xl transition ${pathname === item.href
-                                    ? 'bg-[#D4FF00] text-black font-medium'
-                                    : 'hover:bg-white/5'
+                                ? 'bg-[#D4FF00] text-black font-medium'
+                                : 'hover:bg-white/5'
                                 }`}
                         >
                             <span>{item.icon}</span>

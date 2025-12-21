@@ -102,3 +102,19 @@ export async function createOrder(items: { productId: string; quantity: number }
 export async function getUserOrders() {
     return fetchAPI('/orders');
 }
+
+// Supplier helpers
+export async function searchCJProducts(keyword: string, page = 1) {
+    return fetchAPI(`/supplier/products?keyword=${keyword}&page=${page}`);
+}
+
+export async function getCJProduct(pid: string) {
+    return fetchAPI(`/supplier/product/${pid}`);
+}
+
+export async function createProduct(productData: any) {
+    return fetchAPI('/products', {
+        method: 'POST',
+        body: JSON.stringify(productData),
+    });
+}
