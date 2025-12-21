@@ -116,10 +116,10 @@ export async function uploadProductsCsv(file: File) {
 }
 
 // Order helpers
-export async function createOrder(items: { productId: string; quantity: number }[]) {
+export async function createOrder(data: { items: { productId: string; quantity: number }[], couponCode?: string }) {
     return fetchAPI('/orders', {
         method: 'POST',
-        body: JSON.stringify({ items }),
+        body: JSON.stringify(data),
     });
 }
 
