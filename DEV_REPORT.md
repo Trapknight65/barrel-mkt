@@ -75,11 +75,13 @@ To ensure progress and stability, we switched to **TypeORM** with **PostgreSQL**
 - **TypeScript Compliance**: Fixed "Not Callable" errors for CommonJS modules in the build pipeline.
 
 ### Current Status
-- **Backend (Vercel)**: `https://barrel-mkt-api.vercel.app` (Example)
-- **Frontend (Vercel)**: `https://barrel-mkt.vercel.app` (Example)
+- **Backend (Vercel)**: `https://barrel-mkt-api.vercel.app` (Live)
+- **Frontend (Vercel)**: `https://barrel-mkt.vercel.app` (Live)
 - **Database**: Supabase (Live)
-- **API Status**: CJ v2.0 Integrated & Verified
+- **API Status**: CJ v2.0 Integrated, but currently encountering a persistent `500 Internal Server Error` on the search endpoint.
+- **Root Cause Analysis**: Standalone tests confirm the API key is valid. The `500` error is suspected to be either a Vercel environment variable propagation delay or a violation of CJ's strict 5-minute authentication rate limit (Error 429). Improved error transparency has been deployed to catch the exact response from CJ.
 
 ### Next Milestones
+- **Resolve Search 500**: Capture specific CJ error message (e.g. 429 Rate Limit) to confirm bypass strategy.
 - **Stripe Integration**: Connect real payments to trigger automated fulfillment.
 - **Webhook Scaling**: Production configuration of CJ Webhook listeners for status updates.

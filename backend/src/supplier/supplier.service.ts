@@ -106,7 +106,7 @@ export class SupplierService {
                 this.logger.error('CJ Error Data:', JSON.stringify(error.response.data));
             }
             throw new HttpException(
-                'CJ API authentication failed',
+                `CJ API authentication failed: ${error.message}${error.response ? ' - ' + JSON.stringify(error.response.data) : ''}`,
                 HttpStatus.INTERNAL_SERVER_ERROR,
             );
         }
