@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
-import { fetchAPI } from '@/lib/api';
+import { fetchAPI, uploadProductsCsv } from '@/lib/api';
 
 interface Product {
     id: string;
@@ -16,6 +16,7 @@ interface Product {
 export default function AdminProductsPage() {
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     async function loadProducts() {
         try {
@@ -43,16 +44,49 @@ export default function AdminProductsPage() {
         }
     }
 
+    async function handleFileUpload(event: React.ChangeEvent<HTMLInputElement>) {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        try {
+            setLoading(true);
+            const result = await uploadProductsCsv(file);
+            alert(`Imported: ${result.imported} products\nFailed: ${result.failed} items`);
+            loadProducts();
+        } catch (error) {
+            console.error(error);
+            alert('Failed to upload CSV');
+        } finally {
+            setLoading(false);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        }
+    }
+
     return (
         <div>
             <div className="flex items-center justify-between mb-8">
                 <h1 className="text-3xl font-bold">Products</h1>
-                <Link
-                    href="/admin/products/new"
-                    className="px-6 py-3 bg-[#D4FF00] text-black font-bold rounded-full hover:scale-105 transition"
-                >
-                    + Add Product
-                </Link>
+                <div>
+                    <input
+                        type="file"
+                        accept=".csv"
+                        className="hidden"
+                        ref={fileInputRef}
+                        onChange={handleFileUpload}
+                    />
+                    <button
+                        onClick={() => fileInputRef.current?.click()}
+                        className="px-6 py-3 bg-white/10 text-white font-bold rounded-full hover:bg-white/20 transition mr-4"
+                    >
+                        Import CSV
+                    </button>
+                    <Link
+                        href="/admin/products/new"
+                        className="px-6 py-3 bg-[#D4FF00] text-black font-bold rounded-full hover:scale-105 transition"
+                    >
+                        + Add Product
+                    </Link>
+                </div>
             </div>
 
             {loading ? (

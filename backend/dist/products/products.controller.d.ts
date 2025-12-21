@@ -6,6 +6,7 @@ export declare class ProductsController {
     findAll(category?: string): Promise<Product[]>;
     findOne(id: string): Promise<Product>;
     create(productData: Partial<Product>): Promise<Product>;
+    uploadCsv(file: any): Promise<any>;
     update(id: string, productData: Partial<Product>): Promise<Product>;
     remove(id: string): Promise<void>;
 }

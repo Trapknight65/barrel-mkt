@@ -8,4 +8,5 @@ export declare class ProductsService {
     create(productData: Partial<Product>): Promise<Product>;
     update(id: string, productData: Partial<Product>): Promise<Product>;
     remove(id: string): Promise<void>;
+    uploadCsv(buffer: Buffer): Promise<any>;
 }

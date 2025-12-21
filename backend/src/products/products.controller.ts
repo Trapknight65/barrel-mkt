@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from '@nestjs/passport';
 import { ProductsService } from './products.service';
 import { Product } from '../entities/product.entity';
@@ -21,6 +22,13 @@ export class ProductsController {
     @Post()
     create(@Body() productData: Partial<Product>): Promise<Product> {
         return this.productsService.create(productData);
+    }
+
+    @UseGuards(AuthGuard('jwt'))
+    @Post('upload')
+    @UseInterceptors(FileInterceptor('file'))
+    uploadCsv(@UploadedFile() file: any) {
+        return this.productsService.uploadCsv(file.buffer);
     }
 
     @UseGuards(AuthGuard('jwt'))

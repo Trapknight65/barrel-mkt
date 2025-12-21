@@ -63,6 +63,34 @@ export async function getProduct(id: string) {
     return fetchAPI(`/products/${id}`);
 }
 
+export async function uploadProductsCsv(file: File) {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    // We can't use fetchAPI here easily because it sets Content-Type to application/json
+    // So we'll fetch directly but use the token logic
+    const endpoint = '/products/upload';
+    const url = `${API_BASE}${endpoint}`;
+    const headers: Record<string, string> = {};
+
+    const token = localStorage.getItem('barrel_token');
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: formData,
+    });
+
+    if (!response.ok) {
+        throw new Error(`Upload failed: ${response.status}`);
+    }
+
+    return response.json();
+}
+
 // Order helpers
 export async function createOrder(items: { productId: string; quantity: number }[]) {
     return fetchAPI('/orders', {

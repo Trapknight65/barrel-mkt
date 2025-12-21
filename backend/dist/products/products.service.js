@@ -17,6 +17,8 @@ const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const product_entity_1 = require("../entities/product.entity");
+const stream_1 = require("stream");
+const csv = require("csv-parser");
 let ProductsService = class ProductsService {
     constructor(productsRepository) {
         this.productsRepository = productsRepository;
@@ -47,6 +49,50 @@ let ProductsService = class ProductsService {
         if (result.affected === 0) {
             throw new common_1.NotFoundException(`Product with ID ${id} not found`);
         }
+    }
+    async uploadCsv(buffer) {
+        const stream = stream_1.Readable.from(buffer);
+        const results = [];
+        return new Promise((resolve, reject) => {
+            stream
+                .pipe(csv())
+                .on('data', (data) => results.push(data))
+                .on('end', async () => {
+                let successCount = 0;
+                let errorCount = 0;
+                for (const item of results) {
+                    try {
+                        if (!item.sku || !item.title || !item.price) {
+                            errorCount++;
+                            continue;
+                        }
+                        const productData = {
+                            title: item.title,
+                            description: item.description || '',
+                            price: parseFloat(item.price),
+                            sku: item.sku,
+                            stock: parseInt(item.stock) || 0,
+                            category: item.category || 'General',
+                            imageUrl: item.imageUrl || '',
+                        };
+                        const existing = await this.productsRepository.findOne({ where: { sku: item.sku } });
+                        if (existing) {
+                            await this.productsRepository.update(existing.id, productData);
+                        }
+                        else {
+                            await this.productsRepository.save(this.productsRepository.create(productData));
+                        }
+                        successCount++;
+                    }
+                    catch (e) {
+                        console.error('Error importing item:', item, e);
+                        errorCount++;
+                    }
+                }
+                resolve({ success: true, imported: successCount, failed: errorCount });
+            })
+                .on('error', (err) => reject(err));
+        });
     }
 };
 exports.ProductsService = ProductsService;
