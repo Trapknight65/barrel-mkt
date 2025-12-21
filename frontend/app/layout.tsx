@@ -17,6 +17,9 @@ export const metadata: Metadata = {
   description: "Curated gear for motion-hungry humans.",
 };
 
+import { CartProvider } from "@/context/CartContext";
+import Navbar from "@/components/Navbar";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -27,7 +30,10 @@ export default function RootLayout({
       <body
         className={`${outfit.variable} ${inter.variable} antialiased bg-background text-foreground`}
       >
-        {children}
+        <CartProvider>
+          <Navbar />
+          {children}
+        </CartProvider>
       </body>
     </html>
   );

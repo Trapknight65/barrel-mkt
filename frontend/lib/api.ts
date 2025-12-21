@@ -143,3 +143,8 @@ export async function createPaymentIntent(amount: number, currency = 'usd') {
         body: JSON.stringify({ amount, currency }),
     });
 }
+
+// Coupon helpers
+export async function validateCoupon(code: string) {
+    return fetchAPI(`/coupons/validate/${code}`);
+}

@@ -1,20 +1,12 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { Order, OrderStatus } from '../entities/order.entity';
 import { OrderItem } from '../entities/order-item.entity';
 import { Product } from '../entities/product.entity';
 import { User } from '../entities/user.entity';
+import { CouponsService } from '../coupons/coupons.service';
 import { SupplierService } from '../supplier/supplier.service';
-
-interface CreateOrderItemDto {
-    productId: string;
-    quantity: number;
-}
-
-interface CreateOrderDto {
-    items: CreateOrderItemDto[];
-}
 
 @Injectable()
 export class OrdersService {
@@ -25,44 +17,70 @@ export class OrdersService {
         private orderItemsRepository: Repository<OrderItem>,
         @InjectRepository(Product)
         private productsRepository: Repository<Product>,
+        private couponsService: CouponsService,
         private supplierService: SupplierService,
+        private dataSource: DataSource,
     ) { }
 
-    async create(userId: string, createOrderDto: CreateOrderDto): Promise<Order> {
-        // Calculate total and validate products
-        let totalAmount = 0;
-        const orderItems: OrderItem[] = [];
+    async create(userId: string, createOrderDto: { items: { productId: string; quantity: number }[], couponCode?: string }): Promise<Order> {
+        const queryRunner = this.dataSource.createQueryRunner();
+        await queryRunner.connect();
+        await queryRunner.startTransaction();
 
-        for (const item of createOrderDto.items) {
-            const product = await this.productsRepository.findOne({ where: { id: item.productId } });
-            if (!product) {
-                throw new NotFoundException(`Product ${item.productId} not found`);
+        try {
+            let totalAmount = 0;
+            const orderItems: OrderItem[] = [];
+
+            for (const item of createOrderDto.items) {
+                const product = await this.productsRepository.findOne({ where: { id: item.productId } });
+                if (!product) {
+                    throw new NotFoundException(`Product ${item.productId} not found`);
+                }
+                totalAmount += Number(product.price) * item.quantity;
+
+                const orderItem = this.orderItemsRepository.create({
+                    product,
+                    quantity: item.quantity,
+                    price: product.price,
+                });
+                orderItems.push(orderItem);
             }
-            totalAmount += Number(product.price) * item.quantity;
 
-            const orderItem = this.orderItemsRepository.create({
-                product,
-                quantity: item.quantity,
-                price: product.price,
+            let discountAmount = 0;
+            if (createOrderDto.couponCode) {
+                const coupon = await this.couponsService.findByCode(createOrderDto.couponCode);
+                if (coupon) {
+                    if (coupon.discountType === 'PERCENT') {
+                        discountAmount = totalAmount * (Number(coupon.value) / 100);
+                    } else {
+                        discountAmount = Number(coupon.value);
+                    }
+                    totalAmount = Math.max(0, totalAmount - discountAmount);
+                    await this.couponsService.incrementUsage(coupon.id);
+                }
+            }
+
+            const order = this.ordersRepository.create({
+                user: { id: userId } as User,
+                totalAmount,
+                status: OrderStatus.PENDING,
             });
-            orderItems.push(orderItem);
+
+            const savedOrder = await queryRunner.manager.save(order);
+
+            for (const item of orderItems) {
+                item.order = savedOrder;
+                await queryRunner.manager.save(item);
+            }
+
+            await queryRunner.commitTransaction();
+            return savedOrder;
+        } catch (err) {
+            await queryRunner.rollbackTransaction();
+            throw err;
+        } finally {
+            await queryRunner.release();
         }
-
-        // Create order
-        const order = this.ordersRepository.create({
-            user: { id: userId } as User,
-            totalAmount,
-            status: OrderStatus.PENDING,
-        });
-        const savedOrder = await this.ordersRepository.save(order);
-
-        // Save order items with order reference
-        for (const item of orderItems) {
-            item.order = savedOrder;
-            await this.orderItemsRepository.save(item);
-        }
-
-        return this.findOne(savedOrder.id);
     }
 
     async findUserOrders(userId: string): Promise<Order[]> {
@@ -94,8 +112,6 @@ export class OrdersService {
         // If order just became PAID, trigger supplier order
         if (oldStatus !== OrderStatus.PAID && status === OrderStatus.PAID) {
             try {
-                // In a real app, you'd get customer info from order or user
-                // For MVP, we'll use order items and some placeholder shipping info
                 const cjOrder = await this.supplierService.createOrder({
                     orderNumber: order.id,
                     shippingAddress: {
@@ -108,7 +124,7 @@ export class OrdersService {
                         phone: '123456789',
                     },
                     products: order.items.map(item => ({
-                        vid: item.product.sku, // Assuming SKU is VID for simplicity in MVP
+                        vid: item.product.sku,
                         quantity: item.quantity,
                     }))
                 });
@@ -120,7 +136,6 @@ export class OrdersService {
                 }
             } catch (error) {
                 console.error('Failed to place order with CJ:', error);
-                // In production, you'd queue this for retry or alert admin
             }
         }
 
@@ -138,7 +153,6 @@ export class OrdersService {
         const order = await this.findBySupplierOrderId(supplierOrderId);
         if (!order) return null;
 
-        // Map CJ statuses to internal statuses
         let internalStatus = order.status;
         const s = status.toUpperCase();
 

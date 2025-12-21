@@ -7,11 +7,13 @@ import { OrdersService } from './orders.service';
 import { OrdersController } from './orders.controller';
 import { WebhooksController } from './webhooks.controller';
 import { SupplierModule } from '../supplier/supplier.module';
+import { CouponsModule } from '../coupons/coupons.module';
 
 @Module({
     imports: [
         TypeOrmModule.forFeature([Order, OrderItem, Product]),
         SupplierModule,
+        CouponsModule,
     ],
     controllers: [OrdersController, WebhooksController],
     providers: [OrdersService],

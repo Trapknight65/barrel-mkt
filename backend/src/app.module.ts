@@ -10,6 +10,8 @@ import { AuthModule } from './auth/auth.module';
 import { SupplierModule } from './supplier/supplier.module';
 import { HealthController } from './health.controller';
 
+import { CouponsModule } from './coupons/coupons.module';
+
 @Module({
     imports: [
         ConfigModule.forRoot({ isGlobal: true }),
@@ -24,6 +26,7 @@ import { HealthController } from './health.controller';
         OrdersModule,
         AuthModule,
         SupplierModule,
+        CouponsModule,
     ],
     controllers: [AppController, HealthController],
     providers: [AppService],
