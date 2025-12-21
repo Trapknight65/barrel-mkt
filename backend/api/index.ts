@@ -1,18 +1,28 @@
+import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from '../src/app.module';
 
 let app;
 
 export default async function handler(req, res) {
-    if (!app) {
-        app = await NestFactory.create(AppModule);
-        app.enableCors({
-            origin: true,
-            methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-            credentials: true,
+    try {
+        if (!app) {
+            app = await NestFactory.create(AppModule);
+            app.enableCors({
+                origin: true,
+                methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+                credentials: true,
+            });
+            await app.init();
+        }
+        const expressApp = app.getHttpAdapter().getInstance();
+        return expressApp(req, res);
+    } catch (error) {
+        console.error('SERVERLESS STARTUP ERROR:', error);
+        res.status(500).json({
+            error: 'Serverless initialization failed',
+            message: error.message,
+            stack: error.stack,
         });
-        await app.init();
     }
-    const expressApp = app.getHttpAdapter().getInstance();
-    return expressApp(req, res);
 }
