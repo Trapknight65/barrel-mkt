@@ -104,8 +104,8 @@ export class SupplierService {
             const sign = crypto.createHash('md5').update(apiSecret + timestamp).digest('hex');
 
             const response = await this.httpClient.post('/authentication/getAccessToken', {
-                apiId: apiId,
-                apiSecret: apiSecret, // Sometimes needed alongside the sign
+                apiKey: apiId, // The documentation refers to it as apiKey
+                apiSecret: apiSecret,
                 sign: sign,
                 timestamp: timestamp
             });
