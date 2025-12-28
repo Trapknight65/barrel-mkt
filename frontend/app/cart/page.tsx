@@ -57,9 +57,9 @@ export default function CartPage() {
             });
             clearCart();
             window.location.href = '/checkout/success'; // We'll need a success page
-        } catch (error) {
+        } catch (error: any) {
             console.error('Checkout failed:', error);
-            alert('Something went wrong. Please try again.');
+            alert(error.message || 'Something went wrong. Please try again.');
         } finally {
             setLoading(false);
         }

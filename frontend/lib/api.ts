@@ -33,7 +33,14 @@ export async function fetchAPI(endpoint: string, options: RequestInit = {}) {
     });
 
     if (!response.ok) {
-        throw new Error(`API Error: ${response.status}`);
+        if (response.status === 401 || response.status === 403) {
+            if (typeof window !== 'undefined') {
+                localStorage.removeItem('barrel_token');
+                window.location.href = '/login';
+            }
+        }
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `API Error: ${response.status}`);
     }
 
     return response.json();
