@@ -145,6 +145,15 @@ export default function AdminProductsPage() {
                                     className="w-full px-4 py-3 bg-white/5 rounded-xl border border-white/10 focus:border-[#D4FF00] outline-none transition"
                                 />
                             </div>
+                            <div>
+                                <label className="block text-sm text-white/50 mb-2">Description</label>
+                                <textarea
+                                    value={editForm.description || ''}
+                                    onChange={e => setEditForm({ ...editForm, description: e.target.value })}
+                                    rows={4}
+                                    className="w-full px-4 py-3 bg-white/5 rounded-xl border border-white/10 focus:border-[#D4FF00] outline-none transition resize-none"
+                                />
+                            </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm text-white/50 mb-2">Price</label>

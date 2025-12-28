@@ -124,7 +124,7 @@ export class OrdersService {
                         phone: '123456789',
                     },
                     products: order.items.map(item => ({
-                        vid: item.product.sku,
+                        vid: item.product.cjVid || item.product.sku,
                         quantity: item.quantity,
                     }))
                 });
