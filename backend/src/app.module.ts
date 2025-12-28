@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UsersModule } from './users/users.module';
@@ -13,7 +13,7 @@ import { HealthController } from './health.controller';
 import { CouponsModule } from './coupons/coupons.module';
 
 import { PaymentModule } from './payment/payment.module';
-import { WebhookModule } from './webhook/webhook.module';
+// import { WebhookModule } from './webhook/webhook.module';
 
 @Module({
     imports: [
@@ -34,7 +34,7 @@ import { WebhookModule } from './webhook/webhook.module';
         OrdersModule,
         CouponsModule,
         SupplierModule,
-        WebhookModule,
+        // WebhookModule,
         PaymentModule,
     ],
     controllers: [AppController, HealthController],

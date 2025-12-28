@@ -10,7 +10,7 @@ export class PaymentService {
         const secretKey = this.configService.get<string>('STRIPE_SECRET_KEY');
         if (secretKey) {
             this.stripe = new Stripe(secretKey, {
-                apiVersion: '2024-12-18.acacia', // Use latest API version or valid one
+                apiVersion: '2025-12-15.clover', // Use latest API version or valid one
             });
         }
     }
