@@ -90,12 +90,17 @@ export default function CheckoutPage() {
     const [clientSecret, setClientSecret] = useState('');
     const { cartTotal } = useCart();
 
+    const [error, setError] = useState<string | null>(null);
+
     useEffect(() => {
         if (cartTotal > 0) {
             // Create PaymentIntent as soon as the page loads
             createPaymentIntent(cartTotal)
                 .then((data) => setClientSecret(data.clientSecret))
-                .catch((err) => console.error('Failed to init payment:', err));
+                .catch((err) => {
+                    console.error('Failed to init payment:', err);
+                    setError(err.message || 'Failed to initialize payment. Please check your connection.');
+                });
         }
     }, [cartTotal]);
 
@@ -120,12 +125,25 @@ export default function CheckoutPage() {
             <div className="max-w-xl mx-auto">
                 <h1 className="text-4xl font-black mb-8 text-center">Checkout</h1>
 
-                {clientSecret ? (
+                {error ? (
+                    <div className="bg-red-500/10 border border-red-500/50 p-6 rounded-2xl text-center">
+                        <p className="text-red-500 font-bold mb-4">{error}</p>
+                        <button
+                            onClick={() => window.location.reload()}
+                            className="px-6 py-2 bg-white/10 hover:bg-white/20 rounded-xl font-bold transition"
+                        >
+                            Try Again
+                        </button>
+                    </div>
+                ) : clientSecret ? (
                     <Elements options={options} stripe={stripePromise}>
                         <CheckoutForm clientSecret={clientSecret} total={cartTotal} />
                     </Elements>
                 ) : (
-                    <div className="text-center text-white/50">Loading payment secure connection...</div>
+                    <div className="text-center text-white/50">
+                        <p className="mb-4">Loading payment secure connection...</p>
+                        <p className="text-xs text-white/30">Connecting to Backend...</p>
+                    </div>
                 )}
             </div>
         </div>
