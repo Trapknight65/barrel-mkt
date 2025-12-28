@@ -136,6 +136,11 @@ export class SupplierService {
         params?: any,
     ): Promise<T> {
         const token = await this.getAccessToken();
+        const headers = {
+            'CJ-Access-Token': token,
+            'platformToken': this.platformToken,
+        };
+        // this.logger.log(`CJ Request: ${method} ${endpoint} Headers: ${JSON.stringify(headers)} Payload: ${JSON.stringify(data || params)}`);
 
         try {
             const response = await this.httpClient.request({
@@ -143,21 +148,23 @@ export class SupplierService {
                 url: endpoint,
                 data,
                 params,
-                headers: {
-                    'CJ-Access-Token': token,
-                    'platformToken': this.platformToken,
-                },
+                headers,
             });
+
+            // Log full response for debugging
+            // this.logger.log(`CJ Response (${endpoint}): ${JSON.stringify(response.data)}`);
 
             if (response.data.result) {
                 return response.data.data;
             }
 
+            this.logger.error(`CJ API Logical Error (${endpoint}): ${JSON.stringify(response.data)}`);
             throw new Error(response.data.message || 'CJ API request failed');
         } catch (error: any) {
             this.logger.error(`CJ API error (${endpoint}):`, error.message);
             if (error.response) {
-                this.logger.error('CJ Details:', JSON.stringify(error.response.data));
+                this.logger.error('CJ Error Response Status:', error.response.status);
+                this.logger.error('CJ Error Response Data:', JSON.stringify(error.response.data));
             }
             throw new HttpException(
                 error.response?.data?.message || 'CJ API request failed',
@@ -341,5 +348,23 @@ export class SupplierService {
 
         await this.cjRequest('PATCH', '/shopping/order/cancelOrder', { orderId });
         return true;
+    }
+
+    async debugCj(): Promise<any> {
+        try {
+            const token = await this.getAccessToken();
+            const list = await this.cjRequest('GET', '/product/myProduct/list', null, { page: 1, size: 5 });
+            return {
+                status: 'success',
+                tokenPreview: token.substring(0, 10) + '...',
+                listResult: list
+            };
+        } catch (e: any) {
+            return {
+                status: 'error',
+                message: e.message,
+                details: e.response?.data || 'No details'
+            };
+        }
     }
 }

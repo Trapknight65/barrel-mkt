@@ -50,4 +50,9 @@ export class SupplierController {
     getTracking(@Param('trackingNumber') trackingNumber: string): Promise<any> {
         return this.supplierService.getTracking(trackingNumber);
     }
+
+    @Get('debug-cj')
+    async debugCj(): Promise<any> {
+        return this.supplierService.debugCj();
+    }
 }
