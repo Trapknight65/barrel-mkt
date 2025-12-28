@@ -8,7 +8,11 @@ import { useCart } from '@/context/CartContext';
 import { useRouter } from 'next/navigation';
 
 // Replace with your publishable key
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '');
+const stripeKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+if (!stripeKey) {
+    console.error("Stripe Publishable Key is missing!");
+}
+const stripePromise = loadStripe(stripeKey || '');
 
 function CheckoutForm({ clientSecret, total }: { clientSecret: string, total: number }) {
     const stripe = useStripe();
@@ -68,8 +72,8 @@ function CheckoutForm({ clientSecret, total }: { clientSecret: string, total: nu
     return (
         <form onSubmit={handleSubmit} className="bg-white/5 p-8 rounded-3xl border border-white/10">
             <h2 className="text-2xl font-black mb-6">Payment Details</h2>
-            <div className="mb-6">
-                <PaymentElement />
+            <div className="mb-6 min-h-[400px]">
+                <PaymentElement onReady={() => console.log("Payment Element Ready")} />
             </div>
 
             <button
@@ -115,6 +119,17 @@ export default function CheckoutPage() {
             },
         },
     };
+
+    if (!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
+        return (
+            <div className="min-h-screen bg-black text-white flex items-center justify-center text-center p-4">
+                <div className="bg-red-500/10 border border-red-500/50 p-6 rounded-2xl max-w-md">
+                    <h2 className="text-xl font-bold mb-2 text-red-500">Configuration Error</h2>
+                    <p>Stripe Publishable Key is missing in frontend configuration.</p>
+                </div>
+            </div>
+        );
+    }
 
     if (cartTotal === 0) {
         return <div className="min-h-screen bg-black text-white flex items-center justify-center">Your cart is empty</div>;
