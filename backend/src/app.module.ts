@@ -12,21 +12,30 @@ import { HealthController } from './health.controller';
 
 import { CouponsModule } from './coupons/coupons.module';
 
+import { PaymentModule } from './payment/payment.module';
+import { WebhookModule } from './webhook/webhook.module';
+
 @Module({
     imports: [
         ConfigModule.forRoot({ isGlobal: true }),
-        TypeOrmModule.forRoot({
-            type: 'postgres',
-            url: process.env.DATABASE_URL,
-            autoLoadEntities: true,
-            synchronize: true,
+        TypeOrmModule.forRootAsync({
+            imports: [ConfigModule],
+            useFactory: (configService: ConfigService) => ({
+                type: 'postgres',
+                url: configService.get<string>('DATABASE_URL'),
+                autoLoadEntities: true,
+                synchronize: true, // Dev only
+            }),
+            inject: [ConfigService],
         }),
-        UsersModule,
         ProductsModule,
-        OrdersModule,
         AuthModule,
-        SupplierModule,
+        UsersModule,
+        OrdersModule,
         CouponsModule,
+        SupplierModule,
+        WebhookModule,
+        PaymentModule,
     ],
     controllers: [AppController, HealthController],
     providers: [AppService],

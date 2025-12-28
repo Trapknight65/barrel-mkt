@@ -47,16 +47,8 @@ export default function CartPage() {
 
         setLoading(true);
         try {
-            const items = cart.map((item) => ({
-                productId: item.productId,
-                quantity: item.quantity,
-            }));
-            await createOrder({
-                items,
-                couponCode: discount?.code
-            });
-            clearCart();
-            window.location.href = '/checkout/success'; // We'll need a success page
+            // Redirect to checkout page for payment
+            window.location.href = '/checkout';
         } catch (error: any) {
             console.error('Checkout failed:', error);
             alert(error.message || 'Something went wrong. Please try again.');
