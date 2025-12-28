@@ -33,8 +33,13 @@ export class ProductsService {
     }
 
     async update(id: string, productData: Partial<Product>): Promise<Product> {
-        await this.productsRepository.update(id, productData);
-        return this.findOne(id);
+        try {
+            await this.productsRepository.update(id, productData);
+            return this.findOne(id);
+        } catch (error) {
+            console.error(`Failed to update product ${id}:`, error);
+            throw error;
+        }
     }
 
     async remove(id: string): Promise<void> {

@@ -60,9 +60,9 @@ export default function AdminProductsPage() {
             alert('Product updated successfully!');
             await loadProducts(); // Reload to see changes
             setEditingProduct(null); // Close modal
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to update product:', error);
-            alert('Failed to update product');
+            alert(`Failed to update product: ${error.message}`);
         } finally {
             setSaving(false);
         }
@@ -161,7 +161,10 @@ export default function AdminProductsPage() {
                                         type="number"
                                         step="0.01"
                                         value={editForm.price || 0}
-                                        onChange={e => setEditForm({ ...editForm, price: parseFloat(e.target.value) })}
+                                        onChange={e => {
+                                            const val = parseFloat(e.target.value);
+                                            setEditForm({ ...editForm, price: isNaN(val) ? 0 : val });
+                                        }}
                                         className="w-full px-4 py-3 bg-white/5 rounded-xl border border-white/10 focus:border-[#D4FF00] outline-none transition"
                                     />
                                 </div>
@@ -169,8 +172,11 @@ export default function AdminProductsPage() {
                                     <label className="block text-sm text-white/50 mb-2">Stock</label>
                                     <input
                                         type="number"
-                                        value={editForm.stock || 0}
-                                        onChange={e => setEditForm({ ...editForm, stock: parseInt(e.target.value) })}
+                                        value={editForm.stock ?? 0}
+                                        onChange={e => {
+                                            const val = parseInt(e.target.value);
+                                            setEditForm({ ...editForm, stock: isNaN(val) ? 0 : val });
+                                        }}
                                         className="w-full px-4 py-3 bg-white/5 rounded-xl border border-white/10 focus:border-[#D4FF00] outline-none transition"
                                     />
                                 </div>
