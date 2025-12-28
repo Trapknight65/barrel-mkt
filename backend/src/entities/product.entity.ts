@@ -27,6 +27,12 @@ export class Product {
     @Column({ nullable: true })
     supplierId: string; // ID from CJ or Supplier
 
+    @Column({ nullable: true })
+    cjPid: string; // CJ Product ID (PID)
+
+    @Column({ nullable: true })
+    cjVid: string; // CJ Variant ID (VID)
+
     @Column('int', { default: 0 })
     stock: number;
 

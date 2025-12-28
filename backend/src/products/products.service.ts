@@ -90,4 +90,30 @@ export class ProductsService {
                 .on('error', (err) => reject(err));
         });
     }
+
+    async importCjProduct(data: any): Promise<Product> {
+        const { pid, vid, title, description, price, sku, imageUrl, stock, category } = data;
+
+        const productData = {
+            title,
+            description: description || '',
+            price,
+            sku,
+            imageUrl,
+            stock: stock || 0,
+            category: category || 'CJ Import',
+            cjPid: pid,
+            cjVid: vid,
+            supplierId: 'CJ', // Marking as CJ source
+        };
+
+        const existing = await this.productsRepository.findOne({ where: { sku } });
+        if (existing) {
+            await this.productsRepository.update(existing.id, productData);
+            return this.findOne(existing.id);
+        }
+
+        const newProduct = this.productsRepository.create(productData);
+        return this.productsRepository.save(newProduct);
+    }
 }

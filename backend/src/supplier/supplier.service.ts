@@ -57,6 +57,7 @@ interface CJShippingAddress {
 export class SupplierService {
     private readonly logger = new Logger(SupplierService.name);
     private readonly apiKey: string;
+    private readonly platformToken: string;
     private readonly baseUrl = 'https://developers.cjdropshipping.com/api2.0/v1';
     private accessToken: string | null = null;
     private tokenExpiry: Date | null = null;
@@ -64,6 +65,7 @@ export class SupplierService {
 
     constructor(private configService: ConfigService) {
         this.apiKey = this.configService.get<string>('CJ_API_KEY') || '';
+        this.platformToken = this.configService.get<string>('CJ_PLATFORM_TOKEN') || '';
 
         this.httpClient = axios.create({
             baseURL: this.baseUrl,
@@ -77,6 +79,12 @@ export class SupplierService {
             this.logger.error('CRITICAL: CJ_API_KEY is missing from configuration!');
         } else {
             this.logger.log(`CJ_API_KEY loaded: ${this.apiKey.substring(0, 5)}...${this.apiKey.substring(this.apiKey.length - 4)} (Length: ${this.apiKey.length})`);
+        }
+
+        if (!this.platformToken) {
+            this.logger.warn('CJ_PLATFORM_TOKEN is missing! Custom store operations may fail.');
+        } else {
+            this.logger.log(`CJ_PLATFORM_TOKEN loaded (Length: ${this.platformToken.length})`);
         }
     }
 
@@ -92,22 +100,8 @@ export class SupplierService {
         try {
             this.logger.log('Fetching new CJ access token...');
 
-            // The API key is in the format: apiId@api@apiSecret
-            const [apiId, _, apiSecret] = this.apiKey.split('@');
-
-            if (!apiId || !apiSecret) {
-                throw new Error('Invalid CJ_API_KEY format. Expected apiId@api@apiSecret');
-            }
-
-            const timestamp = Date.now();
-            const crypto = require('crypto');
-            const sign = crypto.createHash('md5').update(apiSecret + timestamp).digest('hex');
-
             const response = await this.httpClient.post('/authentication/getAccessToken', {
-                apiKey: apiId, // The documentation refers to it as apiKey
-                apiSecret: apiSecret,
-                sign: sign,
-                timestamp: timestamp
+                apiKey: this.apiKey
             });
 
             if (response.data.result && response.data.data) {
@@ -151,7 +145,7 @@ export class SupplierService {
                 params,
                 headers: {
                     'CJ-Access-Token': token,
-                    'platformToken': '',
+                    'platformToken': this.platformToken,
                 },
             });
 
@@ -178,9 +172,12 @@ export class SupplierService {
         pageNum?: number;
         pageSize?: number;
     }): Promise<{ list: CJProduct[]; total: number }> {
-        this.logger.log(`Searching CJ products: ${JSON.stringify(params)}`);
+        this.logger.log(`Searching CJ products (My Products): ${JSON.stringify(params)}`);
 
-        const result = await this.cjRequest<any>('GET', '/product/listV2', null, {
+        // Use 'product/myProduct/list' to get products added to the store/account
+        // Note: The params for 'myProduct/list' might differ slightly from 'listV2'.
+        // Assuming 'api2.0/v1/product/myProduct/list' is correct as per user report.
+        const result = await this.cjRequest<any>('GET', '/product/myProduct/list', null, {
             keyWord: params.keyword,
             categoryId: params.categoryId,
             page: params.pageNum || 1,

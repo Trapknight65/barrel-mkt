@@ -32,6 +32,12 @@ export class ProductsController {
     }
 
     @UseGuards(AuthGuard('jwt'))
+    @Post('import-cj')
+    importCjProduct(@Body() data: any): Promise<Product> {
+        return this.productsService.importCjProduct(data);
+    }
+
+    @UseGuards(AuthGuard('jwt'))
     @Patch(':id')
     update(@Param('id') id: string, @Body() productData: Partial<Product>): Promise<Product> {
         return this.productsService.update(id, productData);

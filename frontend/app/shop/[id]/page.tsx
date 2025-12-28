@@ -118,9 +118,10 @@ export default function ProductDetailPage({ params: paramsPromise }: { params: P
                         <div className="space-y-8 mb-16">
                             <div className="p-6 bg-white/5 border border-white/10 rounded-3xl">
                                 <h3 className="text-xs font-black tracking-widest text-[#D4FF00] uppercase mb-4">Description</h3>
-                                <p className="text-lg text-white/70 leading-relaxed font-medium">
-                                    {product.description || "The ultimate performance gear for those who push boundaries. Meticulously designed for reliability and style."}
-                                </p>
+                                <div
+                                    className="text-lg text-white/70 leading-relaxed font-medium"
+                                    dangerouslySetInnerHTML={{ __html: product.description || "The ultimate performance gear for those who push boundaries. Meticulously designed for reliability and style." }}
+                                />
                             </div>
 
                             <div className="flex gap-4">
@@ -149,8 +150,8 @@ export default function ProductDetailPage({ params: paramsPromise }: { params: P
                             onClick={handleAddToCart}
                             disabled={isAdding}
                             className={`w-full py-6 rounded-[32px] font-black text-2xl tracking-tighter transition-all duration-300 flex items-center justify-center gap-4 ${isAdding
-                                    ? 'bg-white text-black scale-95'
-                                    : 'bg-[#D4FF00] text-black hover:scale-[1.02] active:scale-95 shadow-[0_20px_50px_rgba(212,255,0,0.2)]'
+                                ? 'bg-white text-black scale-95'
+                                : 'bg-[#D4FF00] text-black hover:scale-[1.02] active:scale-95 shadow-[0_20px_50px_rgba(212,255,0,0.2)]'
                                 }`}
                         >
                             {isAdding ? (
